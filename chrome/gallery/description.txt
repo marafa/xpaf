@@ -1,3 +1,6 @@
+this is forked from  ^_^ https://github.com/google/xpaf
+this extension give you good xpath,not /html/div/div/div....etc (such as: //div[@prop='positionName' and '职位名称 ']//input)
+
 XPath Helper makes it easy to extract, edit, and evaluate XPath queries on any webpage.
 
 IMPORTANT: After installing this extension, you must reload any existing tabs or restart Chrome for the extension to work.

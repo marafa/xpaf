@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "XPath Helper",
+  "name": "XPath Helper for test",
   "version": "2.0.2",
-  "description": "Extract, edit, and evaluate XPath queries with ease.",
+  "description": "Extract, edit, and evaluate XPath queries with ease. this fork from https://github.com/google/xpaf",
   "background": {
     "page": "background.html"
   },

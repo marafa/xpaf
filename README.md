@@ -1,3 +1,13 @@
+## about this fork
+chrome extension update for good Xpath.
+    
+    /html/div/div/...etc ==>  //div[id='good']
+    
+for tester sometime ,we do not need full path.
+
+
+![preview](./preview-1280x800.png)
+
 XPath-based Parsing Framework (XPaF)
 ====================================
 
