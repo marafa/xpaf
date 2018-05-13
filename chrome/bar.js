@@ -27,6 +27,7 @@ var X_KEYCODE = 88;
 var queryEl = document.getElementById('query');
 var resultsEl = document.getElementById('results');
 var nodeCountEl = document.getElementById('node-count');
+var suggestEl = document.getElementById('query-example');
 
 var nodeCountText = document.createTextNode('0');
 nodeCountEl.appendChild(nodeCountText);
@@ -34,14 +35,14 @@ nodeCountEl.appendChild(nodeCountText);
 // Used by handleMouseMove() to enforce a cooldown period on move.
 var lastMoveTimeInMs = 0;
 
-var evaluateQuery = function() {
+var evaluateQuery = function () {
   chrome.runtime.sendMessage({
     type: 'evaluate',
     query: queryEl.value
   });
 };
 
-var handleRequest = function(request, sender, cb) {
+var handleRequest = function (request, sender, cb) {
   // Note: Setting textarea's value and text node's nodeValue is XSS-safe.
   if (request.type === 'update') {
     if (request.query !== null) {
@@ -52,9 +53,26 @@ var handleRequest = function(request, sender, cb) {
       nodeCountText.nodeValue = request.results[1];
     }
   }
+  if (request.type === 'suggest') {
+    suggestEl.innerHTML = request.query
+    if (suggestEl.children && suggestEl.children) {
+      for (var el of suggestEl.children)
+        el.onclick = clickSuggest
+    }
+  }
 };
+var clickSuggest = function (e) {
+  if (e && e.target) {
+    queryEl.value = e.target.innerText;
+    chrome.runtime.sendMessage({
+      type: 'evaluate',
+      query: e.target.innerText
+    });
 
-var handleMouseMove = function(e) {
+  }
+}
+
+var handleMouseMove = function (e) {
   if (e.shiftKey) {
     // Only move bar if we aren't in the cooldown period. Note, the cooldown
     // duration should take CSS transition time into consideration.
@@ -68,7 +86,7 @@ var handleMouseMove = function(e) {
   }
 };
 
-var handleKeyDown = function(e) {
+var handleKeyDown = function (e) {
   var ctrlKey = e.ctrlKey || e.metaKey;
   var shiftKey = e.shiftKey;
   if (e.keyCode === X_KEYCODE && ctrlKey && shiftKey) {

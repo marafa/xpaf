@@ -1,0 +1,21 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <style>
+   <![CDATA[
+      @font-face {
+        font-family: "Indie Flower";
+        src: url("IndieFlower.ttf") format("truetype");
+      }
+      ]]>
+  </style>
+ </defs>
+ <g>
+  <title>background</title>
+  <rect fill="none" id="canvas_background" height="402" width="582" y="-1" x="-1"/>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <text font-weight="normal" stroke="null" transform="matrix(2.061780779491578,0,0,1.5476479954398703,-223.8406586320891,-92.29518547105755) " id="svg_2" text-anchor="middle" font-family="Indie Flower" font-size="96" fill="#003f7f" y="135.450779" x="139.424795">X</text>
+  <text stroke="null" transform="matrix(1.666845621171603,0,0,1.598137358881857,-36.50443520993274,-70.53095044781266) " id="svg_3" text-anchor="middle" font-family="Indie Flower" font-size="12px" fill="#0000bf" y="118.005828" x="59.400064">path</text>
+ </g>
+</svg>

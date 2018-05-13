@@ -8,8 +8,7 @@
   },
   "browser_action": {
     "default_icon": {
-      "19": "static/icon_19x19.png",
-      "38": "static/icon_38x38.png"
+      "38": "static/xpath.png"
     }
   },
   "content_scripts": [
@@ -20,10 +19,9 @@
     }
   ],
   "icons": {
-    "16": "static/icon_16x16.png",
-    "32": "static/icon_32x32.png",
-    "48": "static/icon_48x48.png",
-    "128": "static/icon_128x128.png"
+    "32": "static/xpath.png",
+    "48": "static/xpath.png",
+    "128": "static/xpath.png"
   },
   "web_accessible_resources": [
     "bar.css",

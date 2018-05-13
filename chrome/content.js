@@ -28,14 +28,14 @@ var xh = xh || {};
 xh.SHIFT_KEYCODE = 16;
 xh.X_KEYCODE = 88;
 
-xh.elementsShareFamily = function(primaryEl, siblingEl) {
+xh.elementsShareFamily = function (primaryEl, siblingEl) {
   var p = primaryEl, s = siblingEl;
   return (p.tagName === s.tagName &&
-          (!p.className || p.className === s.className) &&
-          (!p.id || p.id === s.id));
+    (!p.className || p.className === s.className) &&
+    (!p.id || p.id === s.id));
 };
 
-xh.getElementIndex = function(el) {
+xh.getElementIndex = function (el) {
   var index = 1;  // XPath is one-indexed
   var sib;
   for (sib = el.previousSibling; sib; sib = sib.previousSibling) {
@@ -53,14 +53,91 @@ xh.getElementIndex = function(el) {
   }
   return 0;
 };
-
-xh.makeQueryForElement = function(el) {
+xh.suggestXpath = function (el, queryOut) {
   var query = '';
+  var textQuery = '';
+  var pureText = '';
+  if (el == null) return "";
+
+  if (el.textContent && el.textContent.length < 20) {
+    pureText = "//" + el.tagName.toLowerCase() + '[text()="' + el.textContent + '"]'
+    textQuery = "<a>" + pureText + "</a><br>"
+  }
+  query += textQuery;
+  if (queryOut) {
+    var list = queryOut.split("\/")
+    if (list.length > 3) {
+      if ((queryOut.indexOf("//") === 0) && (list[2].indexOf("@id") > -1)) {
+        query += "<a>" + "//" + list[2] + pureText + "</a>"
+      } else {
+        query += "<a>" + "//" + list[list.length - 2] + "/" + list[list.length - 1] + pureText + "</a>"
+      }
+    }
+  }
+
+  var vueJsProp = xh.getElementByTagProp(el);
+  if (vueJsProp) {
+    query += "<a>" + vueJsProp + "//" + el.tagName.toLowerCase() + "</a>"
+  }
+  chrome.runtime.sendMessage({
+    type: 'suggest',
+    query: query,
+  });
+}
+/**
+ * get Parent Element that has text
+ * @param el
+ */
+xh.getParentHasText = function (el) {
+  var strL1 = ""
+  var strL2 = ""
+  var strL3 = ""
+  if (el) {
+    strL1 = el.innerText
+    if (el.parent) {
+      strL2 = el.parent.innerText
+      if (el.parent.parent) {
+        strL3 = el.parent.parent.innerText
+      }
+    }
+  }
+}
+/**
+ * find parent  <div prop='abc'>  for vue.js
+ */
+xh.getElementByTagProp = function (el) {
+  if (el == null) return null;
+  var newElement = el;
+  var out = null;
+  var level = 0;
+  var commentText = "";
+  while (newElement) {
+    level++;
+
+    if (newElement.getAttribute("prop")) {
+
+      if (newElement.innerText && newElement.innerText.length < 20) {
+        commentText = newElement.innerText
+      }
+      out = "//" + newElement.tagName.toLowerCase() + "[@prop='" + newElement.getAttribute("prop") + "'" + " and '" + commentText + "']"
+      return out;
+    }
+    if (level > 10) break;
+    newElement = newElement.parentElement;
+  }
+  return out;
+}
+xh.makeQueryForElement = function (el) {
+  var query = '';
+  var originEl = el;
   for (; el && el.nodeType === Node.ELEMENT_NODE; el = el.parentNode) {
     var component = el.tagName.toLowerCase();
     var index = xh.getElementIndex(el);
     if (el.id) {
       component += '[@id=\'' + el.id + '\']';
+      query = '//' + component + query
+      xh.suggestXpath(originEl, query)
+      return query
     } else if (el.className) {
       component += '[@class=\'' + el.className + '\']';
     }
@@ -73,16 +150,18 @@ xh.makeQueryForElement = function(el) {
     }
     query = '/' + component + query;
   }
+  xh.suggestXpath(originEl, query)
+
   return query;
 };
 
-xh.highlight = function(els) {
+xh.highlight = function (els) {
   for (var i = 0, l = els.length; i < l; i++) {
     els[i].classList.add('xh-highlight');
   }
 };
 
-xh.clearHighlights = function() {
+xh.clearHighlights = function () {
   var els = document.querySelectorAll('.xh-highlight');
   for (var i = 0, l = els.length; i < l; i++) {
     els[i].classList.remove('xh-highlight');
@@ -91,7 +170,7 @@ xh.clearHighlights = function() {
 
 // Returns [values, nodeCount]. Highlights result nodes, if applicable. Assumes
 // no nodes are currently highlighted.
-xh.evaluateQuery = function(query) {
+xh.evaluateQuery = function (query) {
   var xpathResult = null;
   var str = '';
   var nodeCount = 0;
@@ -99,7 +178,7 @@ xh.evaluateQuery = function(query) {
 
   try {
     xpathResult = document.evaluate(query, document, null,
-                                    XPathResult.ANY_TYPE, null);
+      XPathResult.ANY_TYPE, null);
   } catch (e) {
     str = '[INVALID XPATH EXPRESSION]';
     nodeCount = 0;
@@ -119,7 +198,7 @@ xh.evaluateQuery = function(query) {
     str = xpathResult.stringValue;
     nodeCount = 1;
   } else if (xpathResult.resultType ===
-             XPathResult.UNORDERED_NODE_ITERATOR_TYPE) {
+    XPathResult.UNORDERED_NODE_ITERATOR_TYPE) {
     for (var node = xpathResult.iterateNext(); node;
          node = xpathResult.iterateNext()) {
       if (node.nodeType === Node.ELEMENT_NODE) {
@@ -148,7 +227,7 @@ xh.evaluateQuery = function(query) {
 ////////////////////////////////////////////////////////////
 // xh.Bar class definition
 
-xh.Bar = function() {
+xh.Bar = function () {
   this.boundHandleRequest_ = this.handleRequest_.bind(this);
   this.boundMouseMove_ = this.mouseMove_.bind(this);
   this.boundKeyDown_ = this.keyDown_.bind(this);
@@ -159,6 +238,8 @@ xh.Bar = function() {
   this.barFrame_ = document.createElement('iframe');
   this.barFrame_.src = chrome.runtime.getURL('bar.html');
   this.barFrame_.id = 'xh-bar';
+  this.barFrame_.style.maxWidth = 'initial';
+
   // Init to hidden so first showBar_() triggers fade-in.
   this.barFrame_.classList.add('hidden');
 
@@ -166,17 +247,17 @@ xh.Bar = function() {
   chrome.runtime.onMessage.addListener(this.boundHandleRequest_);
 };
 
-xh.Bar.prototype.hidden_ = function() {
+xh.Bar.prototype.hidden_ = function () {
   return this.barFrame_.classList.contains('hidden');
 };
 
-xh.Bar.prototype.updateQueryAndBar_ = function(el) {
+xh.Bar.prototype.updateQueryAndBar_ = function (el) {
   xh.clearHighlights();
   this.query_ = el ? xh.makeQueryForElement(el) : '';
   this.updateBar_(true);
 };
 
-xh.Bar.prototype.updateBar_ = function(updateQuery) {
+xh.Bar.prototype.updateBar_ = function (updateQuery) {
   var results = this.query_ ? xh.evaluateQuery(this.query_) : ['', 0];
   chrome.runtime.sendMessage({
     type: 'update',
@@ -185,13 +266,15 @@ xh.Bar.prototype.updateBar_ = function(updateQuery) {
   });
 };
 
-xh.Bar.prototype.showBar_ = function() {
+xh.Bar.prototype.showBar_ = function () {
   var that = this;
+
   function impl() {
     that.barFrame_.classList.remove('hidden');
     document.addEventListener('mousemove', that.boundMouseMove_);
     that.updateBar_(true);
   }
+
   if (!this.inDOM_) {
     this.inDOM_ = true;
     document.body.appendChild(this.barFrame_);
@@ -199,17 +282,19 @@ xh.Bar.prototype.showBar_ = function() {
   window.setTimeout(impl, 0);
 };
 
-xh.Bar.prototype.hideBar_ = function() {
+xh.Bar.prototype.hideBar_ = function () {
   var that = this;
+
   function impl() {
     that.barFrame_.classList.add('hidden');
     document.removeEventListener('mousemove', that.boundMouseMove_);
     xh.clearHighlights();
   }
+
   window.setTimeout(impl, 0);
 };
 
-xh.Bar.prototype.toggleBar_ = function() {
+xh.Bar.prototype.toggleBar_ = function () {
   if (this.hidden_()) {
     this.showBar_();
   } else {
@@ -217,7 +302,7 @@ xh.Bar.prototype.toggleBar_ = function() {
   }
 };
 
-xh.Bar.prototype.handleRequest_ = function(request, sender, cb) {
+xh.Bar.prototype.handleRequest_ = function (request, sender, cb) {
   if (request.type === 'evaluate') {
     xh.clearHighlights();
     this.query_ = request.query;
@@ -233,7 +318,7 @@ xh.Bar.prototype.handleRequest_ = function(request, sender, cb) {
   }
 };
 
-xh.Bar.prototype.mouseMove_ = function(e) {
+xh.Bar.prototype.mouseMove_ = function (e) {
   if (this.currEl_ === e.toElement) {
     return;
   }
@@ -243,7 +328,7 @@ xh.Bar.prototype.mouseMove_ = function(e) {
   }
 };
 
-xh.Bar.prototype.keyDown_ = function(e) {
+xh.Bar.prototype.keyDown_ = function (e) {
   var ctrlKey = e.ctrlKey || e.metaKey;
   var shiftKey = e.shiftKey;
   if (e.keyCode === xh.X_KEYCODE && ctrlKey && shiftKey) {
