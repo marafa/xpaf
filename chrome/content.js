@@ -53,31 +53,48 @@ xh.getElementIndex = function (el) {
   }
   return 0;
 };
-xh.suggestXpath = function (el, queryOut) {
-  var query = '';
-  var textQuery = '';
-  var pureText = '';
-  if (el == null) return "";
+xh.suggestXpath = function (oriElement, queryOut) {
+  var query = [];
+  if (oriElement == null) return "";
 
-  if (el.textContent && el.textContent.length < 20) {
-    pureText = "//" + el.tagName.toLowerCase() + '[text()="' + el.textContent + '"]'
-    textQuery = "<a>" + pureText + "</a><br>"
+  // plan A: use tex()  P0
+  if (oriElement.textContent && oriElement.textContent.length < 20) {
+    query.push("//" + oriElement.tagName.toLowerCase() + '[text()="' + oriElement.textContent + '"]')
   }
-  query += textQuery;
+
+  // plan B: use id,if has ID
   if (queryOut) {
+    var pureText = "//" + oriElement.tagName.toLowerCase() + '[text()="' + oriElement.textContent + '"]';
     var list = queryOut.split("\/")
-    if (list.length > 3) {
-      if ((queryOut.indexOf("//") === 0) && (list[2].indexOf("@id") > -1)) {
-        query += "<a>" + "//" + list[2] + pureText + "</a>"
-      } else {
-        query += "<a>" + "//" + list[list.length - 2] + "/" + list[list.length - 1] + pureText + "</a>"
+
+    if ((oriElement.textContent !== "") && (oriElement.textContent.trim() !== "")) {
+      if (list.length > 3) {
+        var p1 = "//" + list[list.length - 2].replace(/\[\d+\]/, "") + pureText;
+        var p2 = "//" + list[list.length - 3].replace(/\[\d+\]/, "") + "/" + list[list.length - 2] + pureText;
+
+        if (xh.evaluateUniqueClassName(p1) === 1) {
+          query.push(p1)
+        } else if (xh.evaluateUniqueClassName(p2) === 1) {
+          query.push(p2)
+        }
+      }
+    } else {
+      var p3 = "//" + list[list.length - 2].replace(/\[\d+\]/, "") + "/" + list[list.length - 1]
+      if (xh.evaluateUniqueClassName(p3) === 1) {
+        query.push(p3)
       }
     }
-  }
 
-  var vueJsProp = xh.getElementByTagProp(el);
+  }
+  //plan C: use className unique
+  var classNames = oriElement.getAttribute("class");
+  //document.getElementById()
+
+
+  //plan D: patch for vue.js
+  var vueJsProp = xh.getElementByTagProp(oriElement);
   if (vueJsProp) {
-    query += "<a>" + vueJsProp + "//" + el.tagName.toLowerCase() + "</a>"
+    query.push(vueJsProp + "//" + oriElement.tagName.toLowerCase())
   }
   chrome.runtime.sendMessage({
     type: 'suggest',
@@ -123,7 +140,8 @@ xh.getElementByTagProp = function (el) {
       return out;
     }
     if (level > 10) break;
-    newElement = newElement.parentElement;
+    newElement = newElement.parentNode;
+    if (newElement === document) break;
   }
   return out;
 }
@@ -223,6 +241,51 @@ xh.evaluateQuery = function (query) {
   xh.highlight(toHighlight);
   return [str, nodeCount];
 };
+
+/**
+ * find out is th unique xpath.
+ * @param query
+ * @return number
+ */
+xh.evaluateUniqueClassName = function (query) {
+  var xpathResult = null;
+  var nodeCount = 0;
+
+  try {
+    xpathResult = document.evaluate(query, document, null,
+      XPathResult.ANY_TYPE, null);
+  } catch (e) {
+    nodeCount = 0;
+  }
+
+  if (!xpathResult) {
+    return nodeCount
+  }
+
+  if (xpathResult.resultType === XPathResult.BOOLEAN_TYPE) {
+    nodeCount = 1;
+  } else if (xpathResult.resultType === XPathResult.NUMBER_TYPE) {
+    nodeCount = 1;
+  } else if (xpathResult.resultType === XPathResult.STRING_TYPE) {
+    nodeCount = 1;
+  } else if (xpathResult.resultType ===
+    XPathResult.UNORDERED_NODE_ITERATOR_TYPE) {
+    for (var node = xpathResult.iterateNext(); node;
+         node = xpathResult.iterateNext()) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+      }
+
+      nodeCount++;
+    }
+    if (nodeCount === 0) {
+    }
+  } else {
+    nodeCount = 0;
+  }
+
+  return nodeCount
+};
+
 
 ////////////////////////////////////////////////////////////
 // xh.Bar class definition

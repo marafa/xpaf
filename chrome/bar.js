@@ -54,7 +54,7 @@ var handleRequest = function (request, sender, cb) {
     }
   }
   if (request.type === 'suggest') {
-    suggestEl.innerHTML = request.query
+    suggestEl.innerHTML = request.query.map((item)=>"<a>"+item+"</a>")
     if (suggestEl.children && suggestEl.children) {
       for (var el of suggestEl.children)
         el.onclick = clickSuggest
